@@ -18,7 +18,7 @@ MonteCarlo::MonteCarlo(BSCall &product, size_t samples)
 
 void MonteCarlo::mc(double &prix, double &stddev, PnlRng *rng)
 {
-    double sum = 0.;
+    double sumX = 0.;
     double var = 0.;
     for (size_t i = 0; i < m_samples; i++) {
         double g = pnl_rng_normal(rng);
