@@ -18,26 +18,26 @@ int main()
     pnl_rng_sseed(rng, time(NULL));
 
     double prix, prixY, prixZ, stddev, stddevY, stddevZ;
+    
+    //Exo 1
     BSCall product(1., 0.2, 0.095, 100., 100., 24);
     MonteCarlo pricer(product, 50000);
-    
     pricer.mc(prix, prixY, prixZ, stddev, stddevY, stddevZ, rng);
     std::cout << "prixX : " << prix << " ICX = " << stddev * 1.96 << "\n";
     std::cout << "prixY : " << prixY <<" ICY : " << stddevY * 1.96 << "\n";
     std::cout << "prixZ : " << prixZ <<" ICZ : " << stddevZ * 1.96 << "\n";
 
+    //Exo 2
+    BSCall barrier(1., 0.25, 0.02, 100., 105., 90., 24);
+    MonteCarlo monte(barrier, 50000);
+    monte.mcBar(prix, prixY, stddev, stddevY, rng);
+    std::cout << "Barriere Basse : \n";
+    std::cout << "prixX : " << prix << " ICX = " << stddev * 1.96 << "\n";
+    for (int i = 5; i < 50; i+=5){
+        barrier.m_dates = i;
+        monte.mcBar(prix, prixY, stddev,stddevY, rng);
+        std::cout << "Avec J en standard : " << i << " prixX : " << prix << " ICX = " << stddev * 1.96 << "\n";
+        std::cout << "Avec J en avancé : " << i << " prixY : " << prixY << " ICY = " << stddevY * 1.96 << "\n";
+    }
 
-
-    // double price, delta;
-    // pnl_cf_call_bs (spot, K, T, r, 0., sigma, &price, &delta);
-
-    // double deltaDF;
-    // df(deltaDF, spot, sigma, r, T, K, N, rng);
-
-    // double deltaVR;
-    // vr(deltaVR, spot, sigma, r, T, K, N, rng);
-
-    // std::cout << delta << " : Delta\n";
-    // std::cout << deltaDF << " : DeltaDF\n";
-    // std::cout << deltaVR << " : DeltaVR\n";
 }

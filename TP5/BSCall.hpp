@@ -4,6 +4,7 @@
 
 class BSCall {
 public:
+    BSCall(double maturity, double volatility, double interest_rate, double spot, double strike, double barrier, int dates);
     BSCall(double maturity, double volatility, double interest_rate, double spot, double strike, int dates);
     double m_maturity;
     double m_volatility;
@@ -11,6 +12,8 @@ public:
     double m_spot;
     double m_strike;
     int m_dates;
+    double m_barrier=0.;
+    double m_discount;
 
 
     /// Calculer une valeur de S_T
@@ -25,8 +28,11 @@ public:
     double d_weight_plus(double G, double theta);
     // Calculer la trajectoire d'un sous jacent
     void sousJacent(PnlVect* sousJ);
-
+    // Calculer le log de la trajectoire du sous jacent
     void logsousJacent(PnlVect* sousJ, PnlVect* brownien);
-
+    //Calcule le payoff avec un barriere basse
+    double payoffBarrier(PnlVect *path);
+    //Calcule le payoff avec un barriere basse avec version amélioré
+    double payoffBarrierAm(PnlVect *path);
 };
 

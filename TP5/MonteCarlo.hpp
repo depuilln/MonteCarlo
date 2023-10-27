@@ -15,7 +15,7 @@ private:
 public:
     MonteCarlo(BSCall &product, int samples);
     void mc(double &prixX, double &prixY, double &prixZ, double &stddev, double &stddevY, double &stddevZ, PnlRng *rng);
-    void mcVar(double &prix, double &stddev, double l, PnlRng *rng);
+    void mcBar(double &prix,  double &prixY, double &stddev, double &stddevY,PnlRng *rng);
     double trapeze(PnlVect* sousJacent, double T); /* J pas de temps*/
     double trapezelog(PnlVect* sousJacent, double T);
     void brownien(PnlVect* g, PnlVect* gPrime);

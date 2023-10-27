@@ -35,27 +35,6 @@ double MonteCarlo::trapezelog(PnlVect* sousJacent, double T){ /* J pas de temps*
 }
 
 
-// void MonteCarlo::mcVar(, PnlVect* brownien
-//     double sumX = 0.;
-//     double var = 0.;42.3645
-//     PnlVect *path = pnl_vect_new();
-//     PnlVect *G = pnl_vect_new();
-//     for (int i = 0; i < m_samples; i++) {
-//         pnl_vect_rng_normal(G, m_product.m_dates, rng);
-//         m_product.logsousJacent(path, G);
-//         double flow = m_product.payoff(path);
-//         sumX += flow;
-//         var += flow * flow + m_product.weight_plus(path, l);
-//     }
-//     prix = sumX / m_samples;
-//     var = var / m_samples - prix * prix;
-//     stddev = std::sqrt(var / m_samples);
-//     pnl_vect_free(&path);
-//     pnl_vect_free(&G);
-// }
-
-
-
 void MonteCarlo::mc(double &prixX, double &prixY, double &prixZ, double &stddev, double &stddevY, double &stddevZ, PnlRng *rng)
 {
     double sumX = 0.;
@@ -89,17 +68,48 @@ void MonteCarlo::mc(double &prixX, double &prixY, double &prixZ, double &stddev,
     double d1 = -1/m_product.m_volatility * std::sqrt(3/m_product.m_maturity)*(std::log(m_product.m_strike/m_product.m_spot) - (m_product.m_interest_rate - pow(m_product.m_volatility, 2)/2)*m_product.m_maturity/2);
     double d2 = d1 + m_product.m_volatility * std::sqrt(m_product.m_maturity/3);
     int which = 1; double bound = 2; int status = 0; double mean = 0; double std = 1; double q; double p1; double p2;
-    pnl_cdf_nor(&which, &p1, &q, &d1, &mean, &std, &status, &bound);
-    pnl_cdf_nor(&which, &p2, &q, &d2, &mean, &std, &status, &bound);
-    double esperanceZ = std::exp(-m_product.m_interest_rate * m_product.m_maturity)*(-m_product.m_strike*p1 + m_product.m_spot*std::exp(m_product.m_interest_rate - pow(m_product.m_volatility,2)/6*m_product.m_maturity/2)*p2);
 
+    double part1 = -m_product.m_strike*cdf_nor(d1);
+    double part2 = m_product.m_spot*std::exp((m_product.m_interest_rate - pow(m_product.m_volatility,2)/6)*m_product.m_maturity/2)*cdf_nor(d2);
+    double esperanceZ = m_product.m_discount*(part1+part2);
     prixX = sumX / m_samples;
     prixY =  esperanceY +  sumY / m_samples;
-    prixZ = truuc/m_samples + sumZ / m_samples; //TODO : remplacer truuc/m_samples par esperanceZ. Pour l'instant esperanceZ est faux.
+    prixZ = esperanceZ + sumZ / m_samples; //TODO : remplacer truuc/m_samples par esperanceZ. Pour l'instant esperanceZ est faux.
 
     stddev = std::sqrt((var / m_samples - pow(prixX, 2))/m_samples);
     stddevY = std::sqrt((varY / m_samples - pow(sumY/m_samples, 2))/m_samples);
     stddevZ = std::sqrt((varZ / m_samples - pow(sumZ/m_samples, 2))/m_samples);
+
+    pnl_vect_free(&path);
+    pnl_vect_free(&G);
+}
+
+
+void MonteCarlo::mcBar(double &prixX, double &prixY, double &stddevX, double &stddevY, PnlRng *rng){
+    double sumX = 0.;
+    double sumY = 0.;
+    double varX = 0.;
+    double varY = 0.;
+    PnlVect *path = pnl_vect_create(m_product.m_dates + 1);
+    PnlVect *G = pnl_vect_new();
+    for (size_t i = 0; i < m_samples; i++) {
+        pnl_vect_rng_normal(G, m_product.m_dates, rng);
+        brownien(G, path);
+        m_product.sousJacent(path);
+        double payoffX = m_product.payoffBarrier(path);
+        sumX += payoffX;
+        varX += pow(payoffX, 2);
+
+        double payoffY = m_product.payoffBarrierAm(path);
+        sumY += payoffY;
+        varY += pow(payoffY, 2);
+    }
+
+    prixX = sumX / m_samples;
+    prixY = sumY / m_samples;
+
+    stddevX = std::sqrt((varX / m_samples - pow(prixX, 2))/m_samples);
+    stddevY = std::sqrt((varY / m_samples - pow(prixY, 2))/m_samples);
 
     pnl_vect_free(&path);
     pnl_vect_free(&G);
