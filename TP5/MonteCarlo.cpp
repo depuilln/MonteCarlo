@@ -35,48 +35,53 @@ double MonteCarlo::trapezelog(PnlVect* sousJacent, double T){ /* J pas de temps*
 }
 
 
-void MonteCarlo::mc(double &prixX, double &prixY, double &prixZ, double &stddev, double &stddevY, double &stddevZ, PnlRng *rng)
+void MonteCarlo::mc(double &prixX, double &prixY, double &prixZ, double &stddevX, double &stddevY, double &stddevZ, PnlRng *rng)
 {
-    double sumX = 0.;
-    double sumY = 0.;
-    double sumZ = 0.;
-    double varY = 0.;
-    double var = 0.;
-    double varZ = 0.;
-    double truuc = 0.;
+    double sumX = 0.; double sumY = 0.; double sumZ = 0.;
+    double varX = 0.; double varY = 0.;  double varZ = 0.;
+
+    //creation du vecteur sousJacent
     PnlVect *path = pnl_vect_create(m_product.m_dates + 1);
+    //creation du vecteur des lois normales
     PnlVect *G = pnl_vect_new();
     for (size_t i = 0; i < m_samples; i++) {
+        //Calcul du sousJacent dans le vecteur.
         pnl_vect_rng_normal(G, m_product.m_dates, rng);
         brownien(G, path);
         m_product.sousJacent(path);
+
+        //Calcul pour l'option asiatique
         double flow = trapeze(path, m_product.m_maturity);
-        double payoffX =std::max(flow - m_product.m_strike, 0.)* std::exp(-m_product.m_interest_rate * m_product.m_maturity);
-        double payoffY = std::exp(trapezelog(path, m_product.m_maturity));
-        double payoffZ =std::max(payoffY - m_product.m_strike, 0.)* std::exp(-m_product.m_interest_rate * m_product.m_maturity);
+        double payoffX = m_discount * std::max(flow - m_product.m_strike, 0.);
         sumX += payoffX;
+        varX += pow(payoffX, 2);
+
+        //Calcul pour la variable de controle Y
+        double payoffY = std::exp(trapezelog(path, m_product.m_maturity));
         sumY += payoffX - payoffY;
-        sumZ += payoffX - payoffZ;
-        var += pow(payoffX, 2);
         varY += pow(payoffX - payoffY, 2);
+
+        //Calcul pour la variable de controle Y
+        double payoffZ = m_discount * std::max(payoffY - m_product.m_strike, 0.);
+        sumZ += payoffX - payoffZ;
         varZ += pow(payoffX - payoffZ, 2);
-        truuc += payoffZ;
     }
     double esperanceY = m_product.m_spot * std::exp(m_product.m_interest_rate * m_product.m_maturity / 2 - m_product.m_volatility*m_product.m_volatility*m_product.m_maturity/12);
 
-    
     double d1 = -1/m_product.m_volatility * std::sqrt(3/m_product.m_maturity)*(std::log(m_product.m_strike/m_product.m_spot) - (m_product.m_interest_rate - pow(m_product.m_volatility, 2)/2)*m_product.m_maturity/2);
     double d2 = d1 + m_product.m_volatility * std::sqrt(m_product.m_maturity/3);
-    int which = 1; double bound = 2; int status = 0; double mean = 0; double std = 1; double q; double p1; double p2;
 
     double part1 = -m_product.m_strike*cdf_nor(d1);
     double part2 = m_product.m_spot*std::exp((m_product.m_interest_rate - pow(m_product.m_volatility,2)/6)*m_product.m_maturity/2)*cdf_nor(d2);
     double esperanceZ = m_product.m_discount*(part1+part2);
-    prixX = sumX / m_samples;
-    prixY =  esperanceY +  sumY / m_samples;
-    prixZ = esperanceZ + sumZ / m_samples; //TODO : remplacer truuc/m_samples par esperanceZ. Pour l'instant esperanceZ est faux.
 
-    stddev = std::sqrt((var / m_samples - pow(prixX, 2))/m_samples);
+    //Calcul des prix des options
+    prixX = sumX / m_samples;
+    prixY = esperanceY + sumY / m_samples;
+    prixZ = esperanceZ + sumZ / m_samples;
+
+    //Calcul des ecarts-types des options
+    stddevX = std::sqrt((varX / m_samples - pow(prixX, 2))/m_samples);
     stddevY = std::sqrt((varY / m_samples - pow(sumY/m_samples, 2))/m_samples);
     stddevZ = std::sqrt((varZ / m_samples - pow(sumZ/m_samples, 2))/m_samples);
 
@@ -86,31 +91,39 @@ void MonteCarlo::mc(double &prixX, double &prixY, double &prixZ, double &stddev,
 
 
 void MonteCarlo::mcBar(double &prixX, double &prixY, double &stddevX, double &stddevY, PnlRng *rng){
-    double sumX = 0.;
-    double sumY = 0.;
-    double varX = 0.;
-    double varY = 0.;
+    double sumX = 0.; double sumY = 0.;
+    double varX = 0.; double varY = 0.;
+
+    //creation du vecteur sousJacent
     PnlVect *path = pnl_vect_create(m_product.m_dates + 1);
+    //creation du vecteur des lois normales
     PnlVect *G = pnl_vect_new();
+
     for (size_t i = 0; i < m_samples; i++) {
+        //creation du sousJacent dans le vecteur path
         pnl_vect_rng_normal(G, m_product.m_dates, rng);
         brownien(G, path);
         m_product.sousJacent(path);
+
+        //Calcul du payoff pour la barriere
         double payoffX = m_product.payoffBarrier(path);
         sumX += payoffX;
         varX += pow(payoffX, 2);
 
+        //Calcul du payoff pour la barriere améliorer
         double payoffY = m_product.payoffBarrierAm(path);
         sumY += payoffY;
         varY += pow(payoffY, 2);
     }
-
+    //Calcul des prix des options
     prixX = sumX / m_samples;
     prixY = sumY / m_samples;
 
+    //Calcul des ecarts types.
     stddevX = std::sqrt((varX / m_samples - pow(prixX, 2))/m_samples);
     stddevY = std::sqrt((varY / m_samples - pow(prixY, 2))/m_samples);
 
+    //free des vecteurs.
     pnl_vect_free(&path);
     pnl_vect_free(&G);
 }
