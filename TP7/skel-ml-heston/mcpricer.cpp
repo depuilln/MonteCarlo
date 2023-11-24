@@ -13,14 +13,17 @@ int main(int argc, char **argv)
   pnl_rng_sseed(rng, std::time(NULL));
   MonteCarlo mc = MonteCarlo(&asianOption, &hestonModel, rng);
 
-  double prix, std_dev;
+  double prix, std_dev, err;
+  double prixExact = 3.847906;
   int nTimeSteps = 50;
   long long nSamples = 1E5;
   mc.run(prix, std_dev, nSamples, nTimeSteps);
+  mc.mse(err, nSamples, nTimeSteps, prixExact);
+
 
   std::cout << "Price: " << prix << "\n";
   std::cout << "CI width: " << std_dev * 1.96 * 2 << "\n";
-
+  std::cout << "Err mse : " << err << "\n";
   pnl_rng_free(&rng);
   return 0;
 }

@@ -23,4 +23,6 @@ public:
    * @param nTimeSteps  Number of time steps to discretize the model.
    */
   void run (double &prix, double &std_dev, long long nSamples, int nTimeSteps);
+  void mse (double &err, long long nSamples, int nTimeSteps, double prixExact);
+
 };
