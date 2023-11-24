@@ -31,28 +31,27 @@ void MultiLevelMonteCarlo::run(double &prix, double &std_dev, int m, int L)
   PnlVect *pathFine = pnl_vect_new();
   PnlMat *Gcrude = pnl_mat_new();
   PnlMat *Gfine = pnl_mat_new();
-  double prix0;
-  double std_dev0;
-  double price;
+  double price = 0.;
   PnlMat *G = pnl_mat_create(m , 2);
   PnlVect *path = pnl_vect_create(m);
 
   // Treat Level 0
-  for (int i = 0; i<nSamples(0, m, L); i++){
+  for (int i = 0; i<nSamples(0, 1, L); i++){
     pnl_mat_rng_normal(G, m, 2, m_rng);
     m_mod->simul(path, m_opt->m_maturity, m, G);
     price = m_opt->payoff(path);
     prix += price ;
     std_dev += price*price;
   }
-  prix0 = prix/nSamples(0, m, L);
-  std_dev0 = std::sqrt((std_dev /nSamples(0, m, L) - prix*prix)/nSamples(0, m, L));
+  prix /= nSamples(0, 1, L);
+  std_dev /= nSamples(0, 1, L);
+  std_dev = std::sqrt((std_dev - prix*prix)/nSamples(0, 1, L));
   // Loop on all the levels > 0
   for (int l = 1; l < L; l++) {
     long long Nl = nSamples(l, m, L);
     int ml = pnl_pow_i(m, l);
     double sum = 0.;
-
+    double var = 0.;
     for (int i = 0; i < Nl; i++) {
       pnl_mat_rng_normal(Gfine, ml, 2, m_rng);
 
@@ -65,16 +64,18 @@ void MultiLevelMonteCarlo::run(double &prix, double &std_dev, int m, int L)
 
       m_mod->simul(pathCrude, m_opt->m_maturity, ml / m, Gcrude);
 
-      sum -= m_opt->payoff(pathCrude);
+      sum -= m_opt->payoff(pathFine);
+      var += SQR(m_opt->payoff(pathFine)-m_opt->payoff(pathFine));
     }
     sum /= Nl;
+    var /= Nl;
     prix += sum;
-    std_dev += sum *sum;
+    std_dev += std::sqrt((var - sum*sum)/Nl);
   }
-  prix = prix/L;
-  std_dev = prix /L;
   pnl_mat_free(&Gcrude);
   pnl_mat_free(&Gfine);
   pnl_vect_free(&pathCrude);
   pnl_vect_free(&pathFine);
+  pnl_mat_free(&G);
+  pnl_vect_free(&path);
 }
