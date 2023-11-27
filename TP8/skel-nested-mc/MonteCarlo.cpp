@@ -26,24 +26,25 @@ void MonteCarlo::run(double &prix, double &std_dev, long long nSamples, int nTim
   std_dev = std::sqrt((std::exp(- 2 * m_mod->m_r * m_opt->m_maturity) * sum_sq / nSamples - prix * prix) / nSamples);
 }
 
-void MonteCarlo::run(double &prix, double &std_dev, long long nSamples, int nTimeSteps)
+void MonteCarlo::runNested(double &prix, double &std_dev, long long nSamples, int nTimeSteps, double alpha)
 {
   PnlVect *G = pnl_vect_new();
   PnlVect *path = pnl_vect_new();
   double sum = 0.;
   double sum_sq = 0.;
+  double portT, portT_sq, port0;
   for (int n = 0; n < nSamples; n++) {
-    pnl_vect_rng_normal(G, nTim,          eSteps, m_rng);
-    m_mod->simul(path, m_opt->m_maturity, nTimeSteps, G);
-    double payoff = m_opt->payoff(path);
+    run(port0, portT_sq, nSamples, nTimeSteps);
+    runT(portT, portT_sq, nSamples, nTimeSteps);
+    double payoff = MAX(portT - alpha * port0, 0);
     sum += payoff;
     sum_sq += payoff * payoff;
   }
-  prix = std::exp(- m_mod->m_r * (m_opt->m_maturity-) * sum / nSamples;
+  prix = std::exp(- m_mod->m_r * m_opt->m_maturity) * sum / nSamples;
   std_dev = std::sqrt((std::exp(- 2 * m_mod->m_r * m_opt->m_maturity) * sum_sq / nSamples - prix * prix) / nSamples);
 }
 
-void MonteCarlo::imbrique(double &prixPorto, double &std_devPorto, long long mSamples, int nTimeSteps, double alpha)
+void MonteCarlo::runT(double &prixPorto, double &std_devPorto, long long mSamples, int nTimeSteps)
 {
   PnlVect *G = pnl_vect_new();
   PnlVect *path = pnl_vect_new();
@@ -53,11 +54,7 @@ void MonteCarlo::imbrique(double &prixPorto, double &std_devPorto, long long mSa
   prixPorto = 0.;
   std_devPorto = 0.;
   double prix0, std_dev0;
-  run(prix0, std_dev0, mSamples, nTimeSteps);
-  for (int m = 0; m < mSamples; m++){
-    sum = 0.;
-    sum_sq = 0.;
-    pnl_vect_rng_normal(G, nTimeSteps, m_rng);
+  pnl_vect_rng_normal(G, nTimeSteps, m_rng);
     for (int n = 0; n < mSamples; n++){
       m_mod->simul(path, m_opt->m_maturity, nTimeSteps, G);
       double payoff = m_opt->payoff(path);

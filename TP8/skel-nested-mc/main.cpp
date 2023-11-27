@@ -18,9 +18,10 @@ int main(int argc, char **argv)
   long long nSamples = 1E5;
   long mSamples = 20;
   mc.run(prix, std_dev, nSamples, nTimeSteps);
-  mc.imbrique(prix_imbr, std_dev_imbr, nSamples, nTimeSteps, 0.8);
   std::cout << "Price: " << prix << "\n";
   std::cout << "CI width: " << std_dev * 1.96 * 2 << "\n";
+
+  mc.runNested(prix_imbr, std_dev_imbr, nSamples, nTimeSteps, 0.8);
   std::cout << "Price Imbr: " << prix_imbr << "\n";
   std::cout << "CI width Imbr: " << std_dev_imbr * 1.96 * 2 << "\n";
 
