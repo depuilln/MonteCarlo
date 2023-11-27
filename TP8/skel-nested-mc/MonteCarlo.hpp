@@ -23,5 +23,7 @@ public:
    * @param nTimeSteps  Number of time steps to discretize the model.
    */
   void run (double &prix, double &std_dev, long long nSamples, int nTimeSteps);
-  void imbrique (double &prix, double &std_dev, long long nSamples, int nTimeSteps, double alpha);
+  void runNested (double &prix, double &std_dev, long long nSamples, int nTimeSteps, double alpha, double t);
+  void run (double &prix, double &std_dev, long long nSamples, int nTimeSteps, double t);
+
 };

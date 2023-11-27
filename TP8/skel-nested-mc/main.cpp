@@ -21,7 +21,7 @@ int main(int argc, char **argv)
   std::cout << "Price: " << prix << "\n";
   std::cout << "CI width: " << std_dev * 1.96 * 2 << "\n";
 
-  mc.runNested(prix_imbr, std_dev_imbr, nSamples, nTimeSteps, 0.8);
+  mc.runNested(prix_imbr, std_dev_imbr, nSamples, nTimeSteps, 0.8, 1.);
   std::cout << "Price Imbr: " << prix_imbr << "\n";
   std::cout << "CI width Imbr: " << std_dev_imbr * 1.96 * 2 << "\n";
 
